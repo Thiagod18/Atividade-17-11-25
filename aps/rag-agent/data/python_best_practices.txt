@@ -1,0 +1,289 @@
+# Guia de Boas Práticas em Python
+
+## Introdução
+Python é uma linguagem de programação versátil e poderosa, amplamente utilizada em desenvolvimento web, ciência de dados, automação e inteligência artificial.
+
+## PEP 8 - Style Guide for Python Code
+O PEP 8 é o guia de estilo oficial para código Python. Seguir essas convenções torna o código mais legível e profissional.
+
+### Indentação
+- Use 4 espaços por nível de indentação
+- Nunca misture tabs e espaços
+- Linhas de continuação devem alinhar elementos verticalmente
+
+### Comprimento de Linha
+- Limite todas as linhas a no máximo 79 caracteres
+- Para docstrings e comentários, limite a 72 caracteres
+
+### Imports
+- Imports devem estar em linhas separadas
+- Imports devem ser agrupados na seguinte ordem:
+  1. Biblioteca padrão
+  2. Bibliotecas de terceiros
+  3. Importações locais
+
+Exemplo:
+```python
+import os
+import sys
+
+import numpy as np
+import pandas as pd
+
+from meu_pacote import minha_funcao
+```
+
+## Estruturas de Dados
+
+### Listas
+Listas são mutáveis e ordenadas:
+```python
+frutas = ['maçã', 'banana', 'laranja']
+frutas.append('uva')
+```
+
+### Tuplas
+Tuplas são imutáveis:
+```python
+coordenadas = (10, 20)
+```
+
+### Dicionários
+Dicionários armazenam pares chave-valor:
+```python
+pessoa = {
+    'nome': 'João',
+    'idade': 30,
+    'cidade': 'São Paulo'
+}
+```
+
+### Sets
+Sets são coleções não ordenadas de elementos únicos:
+```python
+numeros = {1, 2, 3, 4, 5}
+```
+
+## Funções e Métodos
+
+### Definição de Funções
+```python
+def calcular_area(largura, altura):
+    """
+    Calcula a área de um retângulo.
+    
+    Args:
+        largura (float): A largura do retângulo
+        altura (float): A altura do retângulo
+    
+    Returns:
+        float: A área do retângulo
+    """
+    return largura * altura
+```
+
+### Argumentos Padrão
+```python
+def saudacao(nome, mensagem="Olá"):
+    return f"{mensagem}, {nome}!"
+```
+
+### *args e **kwargs
+```python
+def soma(*args):
+    return sum(args)
+
+def criar_perfil(**kwargs):
+    return kwargs
+```
+
+## Programação Orientada a Objetos
+
+### Classes
+```python
+class Carro:
+    def __init__(self, marca, modelo, ano):
+        self.marca = marca
+        self.modelo = modelo
+        self.ano = ano
+    
+    def descrever(self):
+        return f"{self.marca} {self.modelo} ({self.ano})"
+    
+    def idade(self, ano_atual):
+        return ano_atual - self.ano
+```
+
+### Herança
+```python
+class CarroEletrico(Carro):
+    def __init__(self, marca, modelo, ano, autonomia):
+        super().__init__(marca, modelo, ano)
+        self.autonomia = autonomia
+    
+    def descrever(self):
+        descricao = super().descrever()
+        return f"{descricao} - Autonomia: {self.autonomia}km"
+```
+
+## Tratamento de Exceções
+
+```python
+try:
+    resultado = 10 / 0
+except ZeroDivisionError:
+    print("Erro: Divisão por zero!")
+except Exception as e:
+    print(f"Erro inesperado: {e}")
+finally:
+    print("Operação finalizada")
+```
+
+## List Comprehensions
+
+```python
+# Criar lista de quadrados
+quadrados = [x**2 for x in range(10)]
+
+# Filtrar números pares
+pares = [x for x in range(20) if x % 2 == 0]
+
+# Dicionário comprehension
+quadrados_dict = {x: x**2 for x in range(5)}
+```
+
+## Context Managers
+
+```python
+# Abertura de arquivos
+with open('arquivo.txt', 'r') as f:
+    conteudo = f.read()
+
+# Múltiplos arquivos
+with open('entrada.txt') as f_in, open('saida.txt', 'w') as f_out:
+    f_out.write(f_in.read())
+```
+
+## Decoradores
+
+```python
+def meu_decorador(funcao):
+    def wrapper(*args, **kwargs):
+        print("Antes da função")
+        resultado = funcao(*args, **kwargs)
+        print("Depois da função")
+        return resultado
+    return wrapper
+
+@meu_decorador
+def saudar(nome):
+    print(f"Olá, {nome}!")
+```
+
+## Geradores
+
+```python
+def fibonacci(n):
+    a, b = 0, 1
+    for _ in range(n):
+        yield a
+        a, b = b, a + b
+
+# Uso
+for num in fibonacci(10):
+    print(num)
+```
+
+## Type Hints
+
+```python
+from typing import List, Dict, Optional, Union
+
+def processar_dados(
+    dados: List[int],
+    multiplicador: float = 1.0
+) -> List[float]:
+    return [x * multiplicador for x in dados]
+
+def buscar_usuario(user_id: int) -> Optional[Dict[str, str]]:
+    # Retorna dicionário ou None
+    pass
+```
+
+## Boas Práticas de Performance
+
+### Use comprehensions em vez de loops quando possível
+```python
+# Lento
+resultado = []
+for i in range(1000):
+    resultado.append(i * 2)
+
+# Rápido
+resultado = [i * 2 for i in range(1000)]
+```
+
+### Use set para verificações de pertencimento
+```python
+# Lento para listas grandes
+if elemento in lista:  # O(n)
+    pass
+
+# Rápido
+if elemento in conjunto:  # O(1)
+    pass
+```
+
+### Use join para concatenar strings
+```python
+# Lento
+resultado = ""
+for palavra in palavras:
+    resultado += palavra
+
+# Rápido
+resultado = "".join(palavras)
+```
+
+## Testes Unitários
+
+```python
+import unittest
+
+class TestCalculadora(unittest.TestCase):
+    def test_soma(self):
+        self.assertEqual(2 + 2, 4)
+    
+    def test_divisao(self):
+        self.assertEqual(10 / 2, 5)
+    
+    def test_divisao_por_zero(self):
+        with self.assertRaises(ZeroDivisionError):
+            1 / 0
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+## Virtual Environments
+
+```bash
+# Criar ambiente virtual
+python -m venv venv
+
+# Ativar (Windows)
+venv\Scripts\activate
+
+# Ativar (Linux/Mac)
+source venv/bin/activate
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Congelar dependências
+pip freeze > requirements.txt
+```
+
+## Conclusão
+
+Seguir estas boas práticas tornará seu código Python mais limpo, eficiente e profissional. Lembre-se de sempre escrever código pensando em quem irá mantê-lo no futuro!

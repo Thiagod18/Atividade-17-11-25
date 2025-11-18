@@ -1,0 +1,418 @@
+# Introdução ao LangChain
+
+## O que é LangChain?
+
+LangChain é um framework poderoso para desenvolver aplicações baseadas em modelos de linguagem (LLMs). Ele fornece ferramentas e abstrações que facilitam a criação de aplicações complexas com LLMs.
+
+## Principais Componentes
+
+### 1. Models
+LangChain suporta vários provedores de LLM:
+- OpenAI (GPT-3.5, GPT-4)
+- Anthropic (Claude)
+- Google (PaLM)
+- HuggingFace
+- Ollama (modelos locais)
+
+Exemplo:
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    model="gpt-3.5-turbo",
+    temperature=0.7,
+    max_tokens=500
+)
+```
+
+### 2. Prompts
+Templates para estruturar entradas para o modelo:
+
+```python
+from langchain.prompts import PromptTemplate
+
+template = """
+Você é um assistente útil que responde perguntas sobre {topico}.
+
+Pergunta: {pergunta}
+Resposta:
+"""
+
+prompt = PromptTemplate(
+    template=template,
+    input_variables=["topico", "pergunta"]
+)
+```
+
+### 3. Chains
+Chains combinam múltiplos componentes:
+
+```python
+from langchain.chains import LLMChain
+
+chain = LLMChain(llm=llm, prompt=prompt)
+resposta = chain.run(
+    topico="Python",
+    pergunta="O que são decoradores?"
+)
+```
+
+### 4. Memory
+Mantém contexto entre interações:
+
+```python
+from langchain.memory import ConversationBufferMemory
+
+memory = ConversationBufferMemory()
+memory.save_context(
+    {"input": "Olá!"},
+    {"output": "Olá! Como posso ajudar?"}
+)
+```
+
+### 5. Agents
+Agentes tomam decisões sobre quais ações executar:
+
+```python
+from langchain.agents import initialize_agent, Tool
+from langchain.agents import AgentType
+
+tools = [
+    Tool(
+        name="Calculadora",
+        func=lambda x: eval(x),
+        description="Útil para cálculos matemáticos"
+    )
+]
+
+agent = initialize_agent(
+    tools=tools,
+    llm=llm,
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    verbose=True
+)
+```
+
+## RAG - Retrieval Augmented Generation
+
+RAG é uma técnica que combina recuperação de informações com geração de texto.
+
+### Componentes do RAG
+
+1. **Document Loaders**: Carregam documentos
+2. **Text Splitters**: Dividem documentos em chunks
+3. **Embeddings**: Convertem texto em vetores
+4. **Vector Stores**: Armazenam e buscam vetores
+5. **Retrievers**: Recuperam documentos relevantes
+
+### Implementação Básica de RAG
+
+```python
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.chains import RetrievalQA
+
+# 1. Carregar documentos
+loader = PyPDFLoader("documento.pdf")
+documents = loader.load()
+
+# 2. Dividir em chunks
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200
+)
+chunks = text_splitter.split_documents(documents)
+
+# 3. Criar embeddings
+embeddings = OpenAIEmbeddings()
+
+# 4. Criar vector store
+vectorstore = Chroma.from_documents(
+    documents=chunks,
+    embedding=embeddings,
+    persist_directory="./chroma_db"
+)
+
+# 5. Criar retriever
+retriever = vectorstore.as_retriever(
+    search_kwargs={"k": 3}
+)
+
+# 6. Criar chain RAG
+qa_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=retriever,
+    return_source_documents=True
+)
+
+# 7. Fazer pergunta
+resultado = qa_chain("Qual é o tema principal do documento?")
+print(resultado['result'])
+```
+
+## Document Loaders
+
+### PDF
+```python
+from langchain.document_loaders import PyPDFLoader
+loader = PyPDFLoader("arquivo.pdf")
+```
+
+### Web
+```python
+from langchain.document_loaders import WebBaseLoader
+loader = WebBaseLoader("https://exemplo.com")
+```
+
+### CSV
+```python
+from langchain.document_loaders import CSVLoader
+loader = CSVLoader("dados.csv")
+```
+
+### Markdown
+```python
+from langchain.document_loaders import UnstructuredMarkdownLoader
+loader = UnstructuredMarkdownLoader("doc.md")
+```
+
+## Text Splitters
+
+### RecursiveCharacterTextSplitter
+Divide texto tentando manter parágrafos juntos:
+```python
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200,
+    separators=["\n\n", "\n", " ", ""]
+)
+```
+
+### CharacterTextSplitter
+Divide por caractere específico:
+```python
+splitter = CharacterTextSplitter(
+    separator="\n",
+    chunk_size=1000,
+    chunk_overlap=200
+)
+```
+
+## Embeddings
+
+### OpenAI
+```python
+from langchain_openai import OpenAIEmbeddings
+embeddings = OpenAIEmbeddings()
+```
+
+### HuggingFace
+```python
+from langchain.embeddings import HuggingFaceEmbeddings
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+```
+
+## Vector Stores
+
+### Chroma
+```python
+from langchain.vectorstores import Chroma
+
+vectorstore = Chroma(
+    collection_name="minha_colecao",
+    embedding_function=embeddings,
+    persist_directory="./chroma_db"
+)
+```
+
+### FAISS
+```python
+from langchain.vectorstores import FAISS
+
+vectorstore = FAISS.from_documents(
+    documents=chunks,
+    embedding=embeddings
+)
+vectorstore.save_local("faiss_index")
+```
+
+### Pinecone
+```python
+from langchain.vectorstores import Pinecone
+import pinecone
+
+pinecone.init(api_key="sua-chave")
+vectorstore = Pinecone.from_documents(
+    documents=chunks,
+    embedding=embeddings,
+    index_name="meu-indice"
+)
+```
+
+## Retrieval Strategies
+
+### Similarity Search
+```python
+retriever = vectorstore.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 4}
+)
+```
+
+### MMR (Maximum Marginal Relevance)
+Balanceia relevância com diversidade:
+```python
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 4, "fetch_k": 20}
+)
+```
+
+### Similarity Score Threshold
+```python
+retriever = vectorstore.as_retriever(
+    search_type="similarity_score_threshold",
+    search_kwargs={"score_threshold": 0.8, "k": 4}
+)
+```
+
+## Chain Types para RAG
+
+### Stuff
+Coloca todos os documentos no prompt (simples, mas limitado):
+```python
+chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=retriever
+)
+```
+
+### Map Reduce
+Processa cada documento separadamente e depois combina:
+```python
+chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="map_reduce",
+    retriever=retriever
+)
+```
+
+### Refine
+Refina iterativamente a resposta:
+```python
+chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="refine",
+    retriever=retriever
+)
+```
+
+## Prompt Customization
+
+```python
+from langchain.prompts import PromptTemplate
+
+template = """
+Use o seguinte contexto para responder a pergunta.
+Se você não sabe a resposta, diga que não sabe.
+
+Contexto: {context}
+
+Pergunta: {question}
+
+Resposta detalhada:
+"""
+
+PROMPT = PromptTemplate(
+    template=template,
+    input_variables=["context", "question"]
+)
+
+chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=retriever,
+    chain_type_kwargs={"prompt": PROMPT}
+)
+```
+
+## Conversational RAG
+
+```python
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+    return_messages=True
+)
+
+conversational_chain = ConversationalRetrievalChain.from_llm(
+    llm=llm,
+    retriever=retriever,
+    memory=memory
+)
+
+# Múltiplas perguntas mantendo contexto
+conversational_chain("Qual é o tema do documento?")
+conversational_chain("Me dê mais detalhes sobre isso")
+```
+
+## Metadata e Filtering
+
+```python
+# Adicionar metadata aos documentos
+documents[0].metadata = {
+    "source": "manual.pdf",
+    "page": 1,
+    "author": "João Silva"
+}
+
+# Buscar com filtros
+retriever = vectorstore.as_retriever(
+    search_kwargs={
+        "k": 4,
+        "filter": {"author": "João Silva"}
+    }
+)
+```
+
+## Melhores Práticas
+
+1. **Chunk Size**: Teste diferentes tamanhos (500-2000 caracteres)
+2. **Overlap**: Use 10-20% do chunk size
+3. **Retriever**: Comece com k=3-5 documentos
+4. **Embeddings**: OpenAI para qualidade, HuggingFace para custo
+5. **Prompt Engineering**: Seja específico sobre o formato da resposta
+6. **Metadata**: Use para filtrar e rastrear fontes
+7. **Caching**: Cache embeddings para evitar recálculos
+
+## Debugging e Monitoramento
+
+```python
+# Verbose para ver o processo
+chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=retriever,
+    return_source_documents=True,
+    verbose=True
+)
+
+# Ver documentos recuperados
+resultado = chain("Sua pergunta")
+print("Resposta:", resultado['result'])
+print("\nDocumentos fonte:")
+for doc in resultado['source_documents']:
+    print(f"- {doc.metadata}")
+```
+
+## Conclusão
+
+LangChain simplifica o desenvolvimento de aplicações com LLMs, especialmente para implementações RAG. Com seus componentes modulares, você pode criar desde chatbots simples até sistemas complexos de Q&A sobre documentos.
